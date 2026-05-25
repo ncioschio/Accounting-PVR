@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestionale Rete</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#ffffff; --bg2:#f8f8f7; --bg3:#f1f0ed;
+  --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.2);
+  --text:#1a1a18; --text2:#6b6b68; --text3:#a0a09d;
+  --r-sm:6px; --r-md:8px; --r-lg:12px;
+  --teal:#1D9E75; --teal-l:#E1F5EE; --teal-d:#085041; --teal-b:#9FE1CB;
+  --blue:#378ADD; --blue-l:#E6F1FB; --blue-d:#0C447C; --blue-b:#B5D4F4;
+  --red:#E24B4A;  --red-l:#FCEBEB;  --red-d:#791F1F;  --red-b:#F7C1C1;
+  --amber-l:#FAEEDA; --amber-d:#633806; --amber-b:#FAC775;
+  --purple:#7655D2; --purple-l:#EEEDFE; --purple-d:#3C3489; --purple-b:#C4BCE8;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a; --bg2:#242422; --bg3:#2a2a28;
+  --border:rgba(255,255,255,0.1); --border2:rgba(255,255,255,0.18);
+  --text:#f0f0ec; --text2:#9a9a96; --text3:#666663;
+  --teal-l:#0a3326; --teal-d:#9FE1CB; --teal-b:#0F6E56;
+  --blue-l:#071e36; --blue-d:#85B7EB; --blue-b:#185FA5;
+  --red-l:#2d0f0f; --red-d:#F09595; --red-b:#A32D2D;
+  --amber-l:#2a1a06; --amber-d:#FAC775; --amber-b:#854F0B;
+  --purple-l:#1a1530; --purple-d:#B8ACEC; --purple-b:#4A3A8A;
+}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;line-height:1.5}
+.shell{max-width:1120px;margin:0 auto;padding:1.25rem 1rem}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);margin-bottom:.6rem}
+.t-logo{width:32px;height:32px;background:var(--teal-l);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--teal-d);font-size:17px;flex-shrink:0}
+.t-name{font-size:14px;font-weight:600}
+.t-sub{font-size:11px;color:var(--text2)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2)}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:var(--teal)}.dot.err{background:var(--red)}.dot.syn{background:#BA7517}
+
+/* CFG */
+.cfg{display:none;background:var(--bg);border:0.5px solid var(--border);border-left:3px solid var(--blue);border-radius:var(--r-lg);padding:1rem;margin-bottom:.6rem}
+.cfg.open{display:block}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg) var(--r-lg) 0 0;overflow:hidden;margin-bottom:.75rem}
+.tab{flex:1;padding:.65rem .5rem;font-size:13px;font-weight:500;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;font-family:inherit}
+.tab i{font-size:15px}
+.tab.active{color:var(--text);border-bottom-color:var(--teal);background:var(--bg2)}
+.tab:hover:not(.active){background:var(--bg2);color:var(--text)}
+.panel{display:none}.panel.active{display:block}
+
+/* TIPO TOGGLE */
+.tipo-bar{display:flex;gap:.4rem;margin-bottom:.75rem;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:4px;width:fit-content}
+.tipo-btn{padding:6px 18px;font-size:13px;font-weight:500;border:none;border-radius:var(--r-md);cursor:pointer;transition:all .15s;font-family:inherit;background:transparent;color:var(--text2);display:flex;align-items:center;gap:5px}
+.tipo-btn.active-v{background:var(--blue);color:#fff}
+.tipo-btn.active-c{background:var(--purple);color:#fff}
+.tipo-btn:not(.active-v):not(.active-c):hover{background:var(--bg3)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem;margin-bottom:.6rem}
+.kpi{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:.85rem 1rem}
+.kpi-lbl{font-size:11px;color:var(--text2);margin-bottom:.35rem;display:flex;align-items:center;gap:4px;text-transform:uppercase;letter-spacing:.04em;font-weight:500}
+.kpi-lbl i{font-size:12px}
+.kpi-val{font-size:21px;font-weight:600;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:.3rem}
+
+/* SECTION */
+.section{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);margin-bottom:.6rem;overflow:hidden}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:0.5px solid var(--border);background:var(--bg2)}
+.sec-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+.sec-title i{font-size:15px;color:var(--text2)}
+.sec-body{padding:1rem}
+
+/* TABLE */
+table{width:100%;font-size:13px;border-collapse:collapse;table-layout:fixed}
+th{text-align:left;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border);background:var(--bg2)}
+td{padding:8px 10px;border-bottom:0.5px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg2)}
+tfoot td{font-weight:600;background:var(--bg2);border-top:0.5px solid var(--border2)}
+.empty{text-align:center;padding:2rem;color:var(--text2);font-size:13px}
+.empty i{font-size:22px;display:block;margin:0 auto .4rem;opacity:.3}
+
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;font-size:13px;font-weight:500;border:0.5px solid var(--border2);border-radius:var(--r-md);background:var(--bg);color:var(--text);cursor:pointer;transition:background .12s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:var(--bg2)}
+.btn i{font-size:14px}
+.btn-p{background:var(--teal);color:#fff;border-color:var(--teal)}.btn-p:hover{background:#0F6E56;border-color:#0F6E56}
+.btn-g{border-color:transparent;background:transparent}.btn-g:hover{background:var(--bg2)}
+.btn-del{color:var(--red-d);border-color:var(--red-b);background:var(--red-l)}.btn-del:hover{background:var(--red-b)}
+.btn-pdf{background:var(--purple);color:#fff;border-color:var(--purple)}.btn-pdf:hover{background:var(--purple-d);border-color:var(--purple-d)}
+.btn-sm{padding:4px 9px;font-size:12px}
+.btn-sm i{font-size:13px}
+.btn-ico{padding:5px 7px}
+
+/* BADGE / TAG */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.bv{background:var(--blue-l);color:var(--blue-d)}
+.bc{background:var(--purple-l);color:var(--purple-d)}
+.bg{background:var(--teal-l);color:var(--teal-d)}
+.br{background:var(--red-l);color:var(--red-d)}
+.tag{background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:2px 8px;font-size:11px;display:inline-flex;align-items:center;gap:4px;margin:2px}
+.tag-x{background:none;border:none;cursor:pointer;color:var(--red);padding:0;line-height:1;font-size:13px;display:inline-flex;align-items:center;font-family:inherit}
+
+/* FORMS */
+.frow{margin-bottom:.75rem}
+.frow label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.3rem}
+.frow input,.frow select,.finput{width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-family:inherit;transition:border-color .15s}
+.frow input:focus,.frow select:focus,.finput:focus{outline:none;border-color:var(--teal)}
+
+/* LAYOUT */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+.flex{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.spacer{flex:1}
+.sep{height:0.5px;background:var(--border);margin:.75rem 0}
+
+/* NOTICE */
+.notice{display:flex;align-items:flex-start;gap:.5rem;padding:.6rem .85rem;border-radius:var(--r-md);font-size:12px;margin-bottom:.6rem;border:0.5px solid}
+.notice i{font-size:14px;flex-shrink:0;margin-top:1px}
+.n-info{background:var(--blue-l);color:var(--blue-d);border-color:var(--blue-b)}
+.n-ok{background:var(--teal-l);color:var(--teal-d);border-color:var(--teal-b)}
+.n-warn{background:var(--amber-l);color:var(--amber-d);border-color:var(--amber-b)}
+.n-err{background:var(--red-l);color:var(--red-d);border-color:var(--red-b)}
+
+/* STAT MINI */
+.sm{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r-md);padding:.65rem .85rem;text-align:center}
+.sm-lbl{font-size:11px;color:var(--text2);margin-bottom:.2rem}
+.sm-val{font-size:16px;font-weight:600;color:var(--text)}
+
+/* RICEVUTA PRINT */
+@media print{
+  body{background:#fff;color:#000}
+  .topbar,.tabs,.tipo-bar,.no-print,.btn,.notice{display:none!important}
+  .shell{max-width:100%;padding:0}
+  .section,.kpi{border:1px solid #ccc}
+  .panel{display:block!important}
+  #panel-rete{display:block!important}
+  #panel-sottoreti,#panel-mercato,#panel-storico{display:none!important}
+  #ricevuta-print{display:block!important}
+}
+#ricevuta-print{display:none}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="flex" style="gap:.6rem">
+    <div class="t-logo"><i class="ti ti-chart-dots-3"></i></div>
+    <div><div class="t-name">Gestionale Rete</div><div class="t-sub">contabilità scommesse</div></div>
+  </div>
+  <div class="flex" style="gap:.4rem">
+    <div class="pill"><div class="dot ok" id="sync-dot"></div><span id="sync-lbl">Pronto</span><span id="sync-time" style="margin-left:2px;opacity:.6"></span></div>
+    <button class="btn btn-g btn-sm" onclick="caricaDati()" title="Aggiorna"><i class="ti ti-refresh"></i></button>
+    <button class="btn btn-sm" onclick="toggleCfg()" id="cfg-btn"><i class="ti ti-database"></i> <span id="cfg-lbl">Supabase</span></button>
+    <button class="btn btn-pdf btn-sm no-print" onclick="stampaPDF()"><i class="ti ti-file-invoice"></i> Ricevuta</button>
+  </div>
+</div>
+
+<!-- CFG PANEL -->
+<div class="cfg" id="cfg">
+  <p style="font-size:13px;font-weight:500;margin-bottom:.75rem;display:flex;align-items:center;gap:6px">
+    <i class="ti ti-database" style="color:var(--blue)"></i> Configurazione Supabase
+    <span style="font-size:11px;color:var(--teal);margin-left:.5rem" id="cfg-saved-badge"></span>
+  </p>
+  <div class="g2" style="margin-bottom:.75rem">
+    <div class="frow"><label>URL progetto</label><input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co"></div>
+    <div class="frow"><label>Anon key</label><input type="password" id="cfg-key" placeholder="eyJhbGci..."></div>
+  </div>
+  <div class="flex">
+    <button class="btn btn-p" onclick="salvaConfig()"><i class="ti ti-plug"></i> Connetti e salva</button>
+    <button class="btn btn-del btn-sm" onclick="resettaConfig()"><i class="ti ti-trash"></i> Dimentica credenziali</button>
+    <button class="btn btn-g" onclick="toggleCfg()">Chiudi</button>
+    <span id="cfg-msg" style="font-size:12px;color:var(--text2)"></span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" role="tablist">
+  <button class="tab active" onclick="sw('rete')" role="tab"><i class="ti ti-chart-bar"></i> Rete</button>
+  <button class="tab" onclick="sw('sottoreti')" role="tab"><i class="ti ti-sitemap"></i> Sottoreti</button>
+  <button class="tab" onclick="sw('mercato')" role="tab"><i class="ti ti-calculator"></i> Mercato</button>
+  <button class="tab" onclick="sw('storico')" role="tab"><i class="ti ti-history"></i> Storico</button>
+</div>
+
+<!-- ===== RETE ===== -->
+<div class="panel active" id="panel-rete">
+  <!-- tipo toggle -->
+  <div class="tipo-bar no-print">
+    <button class="tipo-btn active-v" id="tbtn-v" onclick="setTipo('V')"><i class="ti ti-device-gamepad-2"></i> Virtual</button>
+    <button class="tipo-btn" id="tbtn-c" onclick="setTipo('C')"><i class="ti ti-building-casino"></i> Casinò</button>
+  </div>
+  <div id="tipo-label" style="font-size:11px;color:var(--text2);margin-bottom:.5rem;display:flex;align-items:center;gap:4px">
+    <i class="ti ti-info-circle"></i> Visualizzando: <strong id="tipo-name">Virtual</strong>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-trending-up"></i> Risultati netti</div><div class="kpi-val" id="m-netti">—</div><div class="kpi-sub">somma saldi sottoreti</div></div>
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-percentage"></i> Commissioni 35%</div><div class="kpi-val" id="m-comm" style="color:var(--blue)">—</div><div class="kpi-sub">solo su saldi negativi</div></div>
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-scale"></i> Bilancio totale</div><div class="kpi-val" id="m-bil">—</div><div class="kpi-sub">netti + commissioni</div></div>
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-network"></i> Sottoreti attive</div><div class="kpi-val" id="m-count">—</div><div class="kpi-sub">per questo tipo</div></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-title"><i class="ti ti-table"></i> Dettaglio bilancio — <span id="sec-tipo-lbl" style="color:var(--blue)">Virtual</span></span>
+      <button class="btn btn-p btn-sm no-print" onclick="sw('sottoreti')"><i class="ti ti-plus"></i> Nuova sottorete</button>
+    </div>
+    <div id="wrap-rete"><div class="empty"><i class="ti ti-loader"></i>Caricamento...</div></div>
+  </div>
+
+  <!-- Riepilogo entrambi i tipi -->
+  <div class="section" id="sec-riepilogo">
+    <div class="sec-head"><span class="sec-title"><i class="ti ti-layout-grid"></i> Riepilogo globale rete</span></div>
+    <div class="sec-body" id="wrap-riepilogo"><div class="empty">Caricamento...</div></div>
+  </div>
+</div>
+
+<!-- ===== SOTTORETI ===== -->
+<div class="panel" id="panel-sottoreti">
+  <div class="section">
+    <div class="sec-head"><span class="sec-title"><i class="ti ti-edit"></i> <span id="sr-title">Nuova sottorete</span></span></div>
+    <div class="sec-body">
+      <div class="g3" style="margin-bottom:.75rem">
+        <div class="frow"><label>Nome sottorete</label><input type="text" id="sr-nome" placeholder="Es. Zona Nord"></div>
+        <div class="frow"><label>Saldo Virtual (€)</label><input type="number" id="sr-sv" placeholder="0.00" step="0.01"></div>
+        <div class="frow"><label>Saldo Casinò (€)</label><input type="number" id="sr-sc" placeholder="0.00" step="0.01"></div>
+      </div>
+      <div class="frow">
+        <label>Agenti</label>
+        <div class="flex" style="margin-bottom:.4rem;gap:.4rem">
+          <input type="text" id="sr-ag" class="finput" style="flex:1" placeholder="Nome agente — premi Invio" onkeydown="if(event.key==='Enter'){addAg();event.preventDefault()}">
+          <button class="btn btn-sm" onclick="addAg()"><i class="ti ti-plus"></i> Aggiungi</button>
+        </div>
+        <div id="ag-list" style="min-height:22px"></div>
+      </div>
+      <div class="sep"></div>
+      <div class="flex">
+        <button class="btn btn-p" onclick="salvaSR()"><i class="ti ti-device-floppy"></i> Salva sottorete</button>
+        <button class="btn btn-g" onclick="resetSR()">Annulla</button>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-title"><i class="ti ti-sitemap"></i> Sottoreti registrate</span>
+      <button class="btn btn-p btn-sm" onclick="nuovaSR()"><i class="ti ti-plus"></i> Nuova</button>
+    </div>
+    <div id="wrap-sr"><div class="empty"><i class="ti ti-loader"></i>Caricamento...</div></div>
+  </div>
+</div>
+
+<!-- ===== MERCATO ===== -->
+<div class="panel" id="panel-mercato">
+  <div class="notice n-info"><i class="ti ti-info-circle"></i><span>Calcola le puntate ottimali, associa zona e agente per ogni esito, poi convalida la giocata per salvare i movimenti Virtual.</span></div>
+  <div class="section">
+    <div class="sec-head"><span class="sec-title"><i class="ti ti-adjustments"></i> Parametri evento</span></div>
+    <div class="sec-body">
+      <div class="g3">
+        <div class="frow"><label>Nome evento</label><input type="text" id="ev-nome" placeholder="Es. Napoli vs Inter"></div>
+        <div class="frow"><label>Tipo mercato</label>
+          <select id="ev-tipo" onchange="initMercato()">
+            <option value="3">1X2 — tre esiti</option>
+            <option value="2">Due esiti (Over/Under, DC)</option>
+          </select>
+        </div>
+        <div class="frow"><label>Scommessa base esito 1 (€)</label><input type="number" id="ev-base" value="100" min="1" step="1" oninput="calcMercato()"></div>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-head"><span class="sec-title"><i class="ti ti-percentage"></i> Quote, zone e agenti per esito</span></div>
+    <div class="sec-body"><div id="div-quote"></div><div class="sep"></div><div class="g3" id="div-margin"></div></div>
+  </div>
+  <div class="section" id="card-ott" style="display:none">
+    <div class="sec-head">
+      <span class="sec-title"><i class="ti ti-target"></i> Puntate ottimali e scenari</span>
+      <button class="btn btn-p" id="btn-convalida" onclick="apriConvalida()"><i class="ti ti-circle-check"></i> Convalida Giocata</button>
+    </div>
+    <div class="sec-body" id="div-ott"></div>
+  </div>
+</div>
+
+<!-- MODAL CONVALIDA -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:none;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r-lg);padding:1.5rem;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.18)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <span style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:7px"><i class="ti ti-circle-check" style="color:var(--teal)"></i> Convalida Giocata</span>
+      <button class="btn btn-g btn-ico" onclick="chiudiConvalida()"><i class="ti ti-x"></i></button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Seleziona l'esito vincente. I movimenti contabili Virtual verranno salvati automaticamente per ogni zona associata.</p>
+    <div id="modal-esiti" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.25rem"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:1rem" id="modal-preview"></div>
+    <div class="flex">
+      <button class="btn btn-p" id="btn-salva-giocata" onclick="salvaGiocata()" disabled><i class="ti ti-device-floppy"></i> Salva movimenti</button>
+      <button class="btn btn-g" onclick="chiudiConvalida()">Annulla</button>
+      <span id="modal-msg" style="font-size:12px;color:var(--text2)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STORICO ===== -->
+<div class="panel" id="panel-storico">
+  <div class="section" id="form-mov" style="display:none">
+    <div class="sec-head">
+      <span class="sec-title"><i class="ti ti-plus"></i> Nuovo movimento</span>
+      <button class="btn btn-g btn-sm" onclick="document.getElementById('form-mov').style.display='none'"><i class="ti ti-x"></i> Chiudi</button>
+    </div>
+    <div class="sec-body">
+      <div class="g3" style="margin-bottom:.75rem">
+        <div class="frow"><label>Sottorete</label><select id="mov-sr"></select></div>
+        <div class="frow"><label>Tipo</label>
+          <select id="mov-tipo">
+            <option value="V">Virtual</option>
+            <option value="C">Casinò</option>
+          </select>
+        </div>
+        <div class="frow"><label>Data</label><input type="date" id="mov-data"></div>
+      </div>
+      <div class="g2" style="margin-bottom:.75rem">
+        <div class="frow"><label>Importo (€, negativo = perdita)</label><input type="number" id="mov-imp" placeholder="0.00" step="0.01"></div>
+        <div class="frow"><label>Descrizione</label><input type="text" id="mov-desc" placeholder="Es. Raccolta settimana 23"></div>
+      </div>
+      <div class="flex">
+        <button class="btn btn-p" onclick="salvaMov()"><i class="ti ti-device-floppy"></i> Salva movimento</button>
+        <button class="btn btn-g" onclick="document.getElementById('form-mov').style.display='none'">Annulla</button>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-title"><i class="ti ti-history"></i> Storico movimenti</span>
+      <div class="flex" style="gap:.4rem">
+        <select id="storico-filtro-tipo" class="finput" style="width:auto;font-size:12px;padding:4px 8px" onchange="renderMov()">
+          <option value="">Tutti i tipi</option>
+          <option value="V">Virtual</option>
+          <option value="C">Casinò</option>
+        </select>
+        <button class="btn btn-p btn-sm" onclick="nuovoMov()"><i class="ti ti-plus"></i> Nuovo</button>
+      </div>
+    </div>
+    <div id="wrap-mov"><div class="empty"><i class="ti ti-loader"></i>Caricamento...</div></div>
+  </div>
+</div>
+
+<!-- RICEVUTA PRINT (nascosta, solo stampa) -->
+<div id="ricevuta-print"></div>
+
+</div><!-- shell -->
+
+<script>
+const PCT=0.35, LBL={3:['1','X','2'],2:['A','B']};
+let SR=[],MOV=[],agTemp=[],editIdx=-1,SB_URL='',SB_KEY='',tipoAttivo='V';
+
+// ── UTILS ──
+const C=v=>v>=0?'var(--teal)':'var(--red)';
+const e0=v=>(v<0?'−':'')+'€'+Math.abs(v).toFixed(2).replace('.',',');
+const ep=v=>(v>0?'+':v<0?'−':'')+'€'+Math.abs(v).toFixed(2).replace('.',',');
+const commSR=(saldo)=>saldo<0?Math.abs(saldo)*PCT:0;
+
+// saldo di una SR per tipo
+const saldoT=(sr,t)=>Number(t==='V'?sr.saldo_v:sr.saldo_c)||0;
+const commT=(sr,t)=>{const s=saldoT(sr,t);return s<0?Math.abs(s)*PCT:0;};
+const contrT=(sr,t)=>saldoT(sr,t)+commT(sr,t);
+
+// ── SUPABASE CONFIG ──
+function caricaConfig(){
+  try{
+    const u=localStorage.getItem('sb_u'),k=localStorage.getItem('sb_k');
+    if(u&&k){SB_URL=u.replace(/\/$/,'');SB_KEY=k;return true;}
+  }catch(e){}
+  return false;
+}
+function setSB(u,k){SB_URL=u.replace(/\/$/,'');SB_KEY=k;}
+function hasSB(){return!!(SB_URL&&SB_KEY);}
+
+function toggleCfg(){
+  const c=document.getElementById('cfg');
+  c.classList.toggle('open');
+  if(c.classList.contains('open')){
+    if(SB_URL) document.getElementById('cfg-url').value=SB_URL;
+    const badge=document.getElementById('cfg-saved-badge');
+    badge.textContent=hasSB()?'✓ Credenziali salvate nel browser':'';
+  }
+}
+function salvaConfig(){
+  const u=document.getElementById('cfg-url').value.trim();
+  const k=document.getElementById('cfg-key').value.trim();
+  if(!u||!k){document.getElementById('cfg-msg').textContent='Inserisci URL e key';return;}
+  setSB(u,k);
+  try{localStorage.setItem('sb_u',u);localStorage.setItem('sb_k',k);}catch(e){}
+  document.getElementById('cfg-msg').textContent='';
+  document.getElementById('cfg-lbl').textContent='Supabase ✓';
+  document.getElementById('cfg').classList.remove('open');
+  caricaDati();
+}
+function resettaConfig(){
+  if(!confirm('Rimuovere le credenziali salvate?'))return;
+  SB_URL='';SB_KEY='';
+  try{localStorage.removeItem('sb_u');localStorage.removeItem('sb_k');}catch(e){}
+  document.getElementById('cfg-url').value='';
+  document.getElementById('cfg-key').value='';
+  document.getElementById('cfg-saved-badge').textContent='';
+  document.getElementById('cfg-lbl').textContent='Supabase';
+  syncUI('err','Configura Supabase →');
+}
+
+// ── SYNC ──
+function syncUI(s,m){
+  document.getElementById('sync-dot').className='dot '+(s==='ok'?'ok':s==='err'?'err':'syn');
+  document.getElementById('sync-lbl').textContent=m;
+  document.getElementById('sync-time').textContent=s!=='syn'?new Date().toLocaleTimeString('it-IT'):'';
+}
+async function sbFetch(path,opts={}){
+  if(!hasSB())throw new Error('no-cfg');
+  const r=await fetch(SB_URL+path,{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
+    method:opts.method||'GET',body:opts.body
+  });
+  if(!r.ok)throw new Error(await r.text());
+  const ct=r.headers.get('content-type')||'';
+  return ct.includes('json')?r.json():[];
+}
+async function caricaDati(){
+  if(!hasSB()){syncUI('err','Configura Supabase →');renderAll();return;}
+  syncUI('syn','Sincronizzazione...');
+  try{
+    const[sr,mov]=await Promise.all([
+      sbFetch('/rest/v1/sottoreti?select=*&order=created_at.asc'),
+      sbFetch('/rest/v1/movimenti?select=*&order=data.desc,created_at.desc')
+    ]);
+    SR=sr;MOV=mov;syncUI('ok','Sincronizzato');renderAll();
+  }catch(e){syncUI('err','Errore connessione');console.error(e);}
+}
+function renderAll(){renderRete();renderSR();renderMov();}
+
+// ── TABS ──
+function sw(id){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['rete','sottoreti','mercato','storico'][i]===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  if(id==='mercato')initMercato();
+}
+
+// ── TIPO TOGGLE ──
+function setTipo(t){
+  tipoAttivo=t;
+  document.getElementById('tbtn-v').className='tipo-btn'+(t==='V'?' active-v':'');
+  document.getElementById('tbtn-c').className='tipo-btn'+(t==='C'?' active-c':'');
+  document.getElementById('tipo-name').textContent=t==='V'?'Virtual':'Casinò';
+  document.getElementById('sec-tipo-lbl').textContent=t==='V'?'Virtual':'Casinò';
+  document.getElementById('sec-tipo-lbl').style.color=t==='V'?'var(--blue)':'var(--purple)';
+  renderRete();
+}
+
+// ── RETE ──
+function renderRete(){
+  const t=tipoAttivo;
+  let tN=0,tC=0;
+  const srFilt=SR.filter(sr=>{
+    // mostra tutte le sottoreti (hanno entrambi i saldi), filtriamo per tipo nei valori
+    return true;
+  });
+  srFilt.forEach(sr=>{tN+=saldoT(sr,t);tC+=commT(sr,t);});
+  const bil=tN+tC;
+
+  const mn=document.getElementById('m-netti');mn.textContent=e0(tN);mn.style.color=C(tN);
+  document.getElementById('m-comm').textContent=e0(tC);
+  const mb=document.getElementById('m-bil');mb.textContent=e0(bil);mb.style.color=C(bil);
+  document.getElementById('m-count').textContent=SR.length;
+
+  if(!SR.length){
+    document.getElementById('wrap-rete').innerHTML=`<div class="empty"><i class="ti ti-sitemap"></i>Nessuna sottorete. <a href="#" onclick="sw('sottoreti');return false" style="color:var(--teal);text-decoration:none;font-weight:500">Aggiungine una →</a></div>`;
+  } else {
+    let h=`<table><thead><tr>
+      <th style="width:17%">Sottorete</th>
+      <th style="width:20%">Agenti</th>
+      <th style="width:15%">Saldo ${t==='V'?'Virtual':'Casinò'}</th>
+      <th style="width:15%">Commissione 35%</th>
+      <th style="width:14%">Contributo</th>
+      <th style="width:10%">Stato</th>
+    </tr></thead><tbody>`;
+    SR.forEach(sr=>{
+      const s=saldoT(sr,t),c=commT(sr,t),k=contrT(sr,t);
+      const ags=(sr.agenti||[]).map(a=>`<span class="tag">${a}</span>`).join('');
+      h+=`<tr>
+        <td style="font-weight:500">${sr.nome}</td>
+        <td style="white-space:normal;line-height:1.8">${ags||'<span style="color:var(--text3)">—</span>'}</td>
+        <td style="font-weight:600;color:${C(s)}">${ep(s)}</td>
+        <td style="color:var(--blue)">${c>0?e0(c):'—'}</td>
+        <td style="font-weight:600;color:${C(k)}">${ep(k)}</td>
+        <td>${s<0?`<span class="badge br">Negativa</span>`:`<span class="badge bg">Positiva</span>`}</td>
+      </tr>`;
+    });
+    h+=`</tbody><tfoot><tr>
+      <td colspan="2">Totale ${t==='V'?'Virtual':'Casinò'}</td>
+      <td style="color:${C(tN)}">${ep(tN)}</td>
+      <td style="color:var(--blue)">${e0(tC)}</td>
+      <td style="color:${C(bil)}">${ep(bil)}</td>
+      <td></td>
+    </tr></tfoot></table>`;
+    document.getElementById('wrap-rete').innerHTML=h;
+  }
+
+  // Riepilogo globale
+  let tvN=0,tvC=0,tcN=0,tcC=0;
+  SR.forEach(sr=>{tvN+=saldoT(sr,'V');tvC+=commT(sr,'V');tcN+=saldoT(sr,'C');tcC+=commT(sr,'C');});
+  const tvBil=tvN+tvC,tcBil=tcN+tcC,totBil=tvBil+tcBil;
+  document.getElementById('wrap-riepilogo').innerHTML=`
+    <div class="g3" style="margin-bottom:.75rem">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--blue);margin-bottom:.5rem;display:flex;align-items:center;gap:5px"><i class="ti ti-device-gamepad-2"></i> Virtual</div>
+        <div class="g2">
+          <div class="sm"><div class="sm-lbl">Netti</div><div class="sm-val" style="color:${C(tvN)}">${e0(tvN)}</div></div>
+          <div class="sm"><div class="sm-lbl">Commissioni</div><div class="sm-val" style="color:var(--blue)">${e0(tvC)}</div></div>
+        </div>
+        <div class="sm" style="margin-top:.4rem"><div class="sm-lbl">Bilancio Virtual</div><div class="sm-val" style="color:${C(tvBil)}">${ep(tvBil)}</div></div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--purple);margin-bottom:.5rem;display:flex;align-items:center;gap:5px"><i class="ti ti-building-casino"></i> Casinò</div>
+        <div class="g2">
+          <div class="sm"><div class="sm-lbl">Netti</div><div class="sm-val" style="color:${C(tcN)}">${e0(tcN)}</div></div>
+          <div class="sm"><div class="sm-lbl">Commissioni</div><div class="sm-val" style="color:var(--blue)">${e0(tcC)}</div></div>
+        </div>
+        <div class="sm" style="margin-top:.4rem"><div class="sm-lbl">Bilancio Casinò</div><div class="sm-val" style="color:${C(tcBil)}">${ep(tcBil)}</div></div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.5rem;display:flex;align-items:center;gap:5px"><i class="ti ti-sum"></i> Totale rete</div>
+        <div class="sm" style="margin-bottom:.4rem"><div class="sm-lbl">Virtual + Casinò</div><div class="sm-val" style="font-size:20px;color:${C(totBil)}">${ep(totBil)}</div></div>
+      </div>
+    </div>`;
+}
+
+// ── SOTTORETI ──
+function renderSR(){
+  const w=document.getElementById('wrap-sr');
+  if(!SR.length){w.innerHTML=`<div class="empty"><i class="ti ti-sitemap"></i>Nessuna sottorete registrata.</div>`;return;}
+  let h=`<table><thead><tr>
+    <th style="width:16%">Nome</th>
+    <th style="width:20%">Agenti</th>
+    <th style="width:13%">Saldo Virtual</th>
+    <th style="width:13%">Saldo Casinò</th>
+    <th style="width:11%">Comm. V</th>
+    <th style="width:11%">Comm. C</th>
+    <th style="width:10%">Contributo tot.</th>
+    <th style="width:6%"></th>
+  </tr></thead><tbody>`;
+  SR.forEach((sr,i)=>{
+    const sv=saldoT(sr,'V'),sc=saldoT(sr,'C');
+    const cv=commT(sr,'V'),cc=commT(sr,'C');
+    const ktot=(sv+cv)+(sc+cc);
+    const ags=(sr.agenti||[]).map(a=>`<span class="tag">${a}</span>`).join('');
+    h+=`<tr>
+      <td style="font-weight:500">${sr.nome}</td>
+      <td style="white-space:normal;line-height:1.8">${ags||'—'}</td>
+      <td style="color:${C(sv)};font-weight:600">${e0(sv)}</td>
+      <td style="color:${C(sc)};font-weight:600">${e0(sc)}</td>
+      <td style="color:var(--blue)">${cv>0?e0(cv):'—'}</td>
+      <td style="color:var(--blue)">${cc>0?e0(cc):'—'}</td>
+      <td style="font-weight:600;color:${C(ktot)}">${ep(ktot)}</td>
+      <td><div class="flex" style="gap:3px">
+        <button class="btn btn-sm btn-ico" onclick="editSR(${i})" title="Modifica"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm btn-ico btn-del" onclick="delSR('${sr.id}')" title="Elimina"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+  w.innerHTML=h;
+}
+
+function nuovaSR(){editIdx=-1;agTemp=[];['sr-nome','sr-sv','sr-sc','sr-ag'].forEach(id=>document.getElementById(id).value='');document.getElementById('sr-title').textContent='Nuova sottorete';renderAgTemp();}
+function resetSR(){nuovaSR();}
+function editSR(i){
+  editIdx=i;const sr=SR[i];agTemp=[...(sr.agenti||[])];
+  document.getElementById('sr-nome').value=sr.nome;
+  document.getElementById('sr-sv').value=sr.saldo_v||0;
+  document.getElementById('sr-sc').value=sr.saldo_c||0;
+  document.getElementById('sr-title').textContent='Modifica — '+sr.nome;
+  renderAgTemp();sw('sottoreti');window.scrollTo(0,0);
+}
+function addAg(){const v=document.getElementById('sr-ag').value.trim();if(!v)return;agTemp.push(v);document.getElementById('sr-ag').value='';renderAgTemp();}
+function remAg(i){agTemp.splice(i,1);renderAgTemp();}
+function renderAgTemp(){
+  document.getElementById('ag-list').innerHTML=agTemp.length
+    ?agTemp.map((a,i)=>`<span class="tag">${a}<button class="tag-x" onclick="remAg(${i})" title="Rimuovi"><i class="ti ti-x" style="font-size:11px"></i></button></span>`).join('')
+    :'<span style="font-size:12px;color:var(--text3)">Nessun agente aggiunto</span>';
+}
+async function salvaSR(){
+  const nome=document.getElementById('sr-nome').value.trim();
+  const sv=parseFloat(document.getElementById('sr-sv').value)||0;
+  const sc=parseFloat(document.getElementById('sr-sc').value)||0;
+  if(!nome){alert('Inserisci il nome della sottorete');return;}
+  syncUI('syn','Salvataggio...');
+  try{
+    const body={nome,saldo_v:sv,saldo_c:sc,agenti:agTemp};
+    if(editIdx>=0) await sbFetch(`/rest/v1/sottoreti?id=eq.${SR[editIdx].id}`,{method:'PATCH',body:JSON.stringify(body)});
+    else await sbFetch('/rest/v1/sottoreti',{method:'POST',body:JSON.stringify(body)});
+    resetSR();await caricaDati();
+  }catch(e){syncUI('err','Errore salvataggio');console.error(e);}
+}
+async function delSR(id){
+  if(!confirm('Eliminare la sottorete?'))return;
+  syncUI('syn','...');
+  try{await sbFetch(`/rest/v1/sottoreti?id=eq.${id}`,{method:'DELETE'});await caricaDati();}
+  catch(e){syncUI('err','Errore');}
+}
+
+// ── STORICO ──
+function nuovoMov(){
+  if(!SR.length){alert('Aggiungi prima una sottorete.');return;}
+  document.getElementById('mov-sr').innerHTML=SR.map(sr=>`<option value="${sr.id}">${sr.nome}</option>`).join('');
+  document.getElementById('mov-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('mov-imp').value='';document.getElementById('mov-desc').value='';
+  document.getElementById('form-mov').style.display='block';
+}
+async function salvaMov(){
+  const srId=document.getElementById('mov-sr').value;
+  const tipo=document.getElementById('mov-tipo').value;
+  const data=document.getElementById('mov-data').value;
+  const desc=document.getElementById('mov-desc').value.trim();
+  const imp=parseFloat(document.getElementById('mov-imp').value);
+  if(!desc){alert('Inserisci una descrizione');return;}
+  if(isNaN(imp)){alert('Inserisci un importo valido');return;}
+  syncUI('syn','Salvataggio...');
+  try{
+    const sr=SR.find(s=>s.id==srId);
+    await sbFetch('/rest/v1/movimenti',{method:'POST',body:JSON.stringify({sottorete_id:srId,sottorete_nome:sr.nome,tipo,data,descrizione:desc,importo:imp})});
+    // aggiorna saldo corretto
+    const campo=tipo==='V'?'saldo_v':'saldo_c';
+    const nuovoSaldo=Number(sr[campo]||0)+imp;
+    await sbFetch(`/rest/v1/sottoreti?id=eq.${srId}`,{method:'PATCH',body:JSON.stringify({[campo]:nuovoSaldo})});
+    document.getElementById('form-mov').style.display='none';
+    await caricaDati();
+  }catch(e){syncUI('err','Errore');console.error(e);}
+}
+async function delMov(id,srId,tipo,imp){
+  if(!confirm('Rimuovere il movimento? Il saldo verrà stornato.'))return;
+  syncUI('syn','...');
+  try{
+    const sr=SR.find(s=>s.id==srId);
+    await sbFetch(`/rest/v1/movimenti?id=eq.${id}`,{method:'DELETE'});
+    if(sr){
+      const campo=tipo==='V'?'saldo_v':'saldo_c';
+      await sbFetch(`/rest/v1/sottoreti?id=eq.${srId}`,{method:'PATCH',body:JSON.stringify({[campo]:Number(sr[campo]||0)-imp})});
+    }
+    await caricaDati();
+  }catch(e){syncUI('err','Errore');}
+}
+function renderMov(){
+  const filtroTipo=document.getElementById('storico-filtro-tipo')?.value||'';
+  const w=document.getElementById('wrap-mov');
+  let list=filtroTipo?MOV.filter(m=>m.tipo===filtroTipo):MOV;
+  if(!list.length){w.innerHTML=`<div class="empty"><i class="ti ti-history"></i>Nessun movimento${filtroTipo?' per questo tipo':''} registrato.</div>`;return;}
+  let h=`<table><thead><tr>
+    <th style="width:9%">Data</th>
+    <th style="width:16%">Sottorete</th>
+    <th style="width:9%">Tipo</th>
+    <th style="width:30%">Descrizione</th>
+    <th style="width:11%">Importo</th>
+    <th style="width:9%">Categoria</th>
+    <th style="width:6%"></th>
+  </tr></thead><tbody>`;
+  list.forEach(m=>{
+    const imp=Number(m.importo),t=m.tipo||'V';
+    h+=`<tr>
+      <td style="color:var(--text2)">${m.data}</td>
+      <td style="font-weight:500">${m.sottorete_nome}</td>
+      <td>${t==='V'?`<span class="badge bv"><i class="ti ti-device-gamepad-2" style="font-size:10px"></i> Virtual</span>`:`<span class="badge bc"><i class="ti ti-building-casino" style="font-size:10px"></i> Casinò</span>`}</td>
+      <td style="white-space:normal;line-height:1.4">${m.descrizione}</td>
+      <td style="font-weight:600;color:${imp>=0?'var(--teal)':'var(--red)'}">${ep(imp)}</td>
+      <td>${imp>=0?`<span class="badge bg"><i class="ti ti-arrow-down-left" style="font-size:10px"></i> Entrata</span>`:`<span class="badge br"><i class="ti ti-arrow-up-right" style="font-size:10px"></i> Uscita</span>`}</td>
+      <td><button class="btn btn-sm btn-ico btn-del" onclick="delMov('${m.id}','${m.sottorete_id}','${t}',${imp})" title="Elimina"><i class="ti ti-trash"></i></button></td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+  w.innerHTML=h;
+}
+
+// ── MERCATO ──
+let _ptGlobale=[], _TGlobale=0, _gGlobale=[], _qGlobale=[], _lbGlobale=[], _nGlobale=0;
+let esitoSelezionato=-1;
+
+function initMercato(){
+  const n=parseInt(document.getElementById('ev-tipo').value),lb=LBL[n],def=n===3?[2.80,3.20,2.60]:[1.90,1.92];
+  _nGlobale=n; _lbGlobale=lb;
+  let h=`<div style="overflow-x:auto"><table style="table-layout:auto;width:100%;min-width:500px"><thead><tr>
+    <th style="width:60px">Esito</th>
+    <th style="width:100px">Quota</th>
+    <th>Zona (sottorete Virtual)</th>
+    <th>Agente</th>
+  </tr></thead><tbody>`;
+  lb.forEach((l,i)=>{
+    const zonaOpts=SR.map(sr=>`<option value="${sr.id}">${sr.nome}</option>`).join('');
+    h+=`<tr>
+      <td style="font-weight:700;font-size:16px">${l}</td>
+      <td><input type="number" id="q${i}" value="${def[i]}" min="1.01" step="0.01"
+          style="width:85px;padding:6px 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-family:inherit"
+          oninput="calcMercato()"></td>
+      <td><select id="zona${i}" style="width:100%;padding:6px 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-family:inherit">
+          <option value="">— Seleziona zona —</option>${zonaOpts}
+        </select></td>
+      <td><input type="text" id="agente${i}" placeholder="Nome agente"
+          style="width:100%;padding:6px 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-family:inherit"></td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  document.getElementById('div-quote').innerHTML=h;
+  calcMercato();
+}
+
+function calcMercato(){
+  const n=parseInt(document.getElementById('ev-tipo').value),lb=LBL[n],base=parseFloat(document.getElementById('ev-base').value)||100;
+  let q=[];
+  for(let i=0;i<n;i++){const v=parseFloat(document.getElementById('q'+i)?.value);if(!v||v<=1){document.getElementById('card-ott').style.display='none';return;}q.push(v);}
+  _qGlobale=q;_lbGlobale=lb;_nGlobale=n;
+  const si=q.reduce((s,v)=>s+1/v,0),mp=((si-1)*100);
+  document.getElementById('div-margin').innerHTML=`
+    <div class="sm"><div class="sm-lbl">Somma reciproci</div><div class="sm-val">${si.toFixed(4)}</div></div>
+    <div class="sm" style="background:${mp>0?'var(--red-l)':'var(--teal-l)'};border-color:${mp>0?'var(--red-b)':'var(--teal-b)'}">
+      <div class="sm-lbl" style="color:${mp>0?'var(--red-d)':'var(--teal-d)'}">Margine banco</div>
+      <div class="sm-val" style="color:${mp>0?'var(--red)':'var(--teal)'}">${mp.toFixed(2)}%</div>
+    </div>
+    <div class="sm" style="background:var(--blue-l);border-color:var(--blue-b)">
+      <div class="sm-lbl" style="color:var(--blue-d)">Commissione perdenti</div>
+      <div class="sm-val" style="color:var(--blue)">35%</div>
+    </div>`;
+  const peff0=q[0]-PCT;let pt=q.map(v=>base*peff0/(v-PCT));pt[0]=base;
+  const T=pt.reduce((s,v)=>s+v,0),g=q.map((v,k)=>pt[k]*v-T+PCT*(T-pt[k]));
+  const gGuad=g[0];
+  const pctGuad=T>0?(gGuad/T*100):0;
+  _ptGlobale=pt;_TGlobale=T;_gGlobale=g;
+  let html='';
+  if(gGuad>0) html+=`<div class="notice n-ok"><i class="ti ti-circle-check"></i><span>Guadagno garantito in tutti gli scenari.</span></div>`;
+  else html+=`<div class="notice n-warn"><i class="ti ti-alert-triangle"></i><span>Attenzione: guadagno negativo con queste quote.</span></div>`;
+  html+=`<div style="overflow-x:auto;margin-bottom:.75rem"><table style="table-layout:auto;min-width:480px">
+    <thead><tr><th>Esito</th><th>Quota</th><th>Zona</th><th>Punta ottimale</th><th>Vincita lorda</th><th>Comm. perdenti</th><th>Uscite tot.</th><th>Guadagno netto</th></tr></thead><tbody>`;
+  q.forEach((v,k)=>{
+    const vl=pt[k]*v,ps=T-pt[k],c=PCT*ps,gk=g[k];
+    const zonaEl=document.getElementById('zona'+k);
+    const zonaNome=zonaEl&&zonaEl.selectedIndex>0?zonaEl.options[zonaEl.selectedIndex].text:'—';
+    html+=`<tr>
+      <td><strong>${lb[k]}</strong></td><td>${v.toFixed(2)}</td>
+      <td style="font-size:12px;color:var(--text2)">${zonaNome}</td>
+      <td style="font-weight:600">${e0(pt[k])}</td>
+      <td style="color:var(--teal)">${e0(vl)}</td>
+      <td style="color:var(--blue)">+${e0(c)}</td>
+      <td style="color:var(--red)">-${e0(T)}</td>
+      <td style="font-weight:600;color:${gk>=0?'var(--teal)':'var(--red)'}">${ep(gk)}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div><div class="sep"></div>`;
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
+    <div class="sm"><div class="sm-lbl">Totale puntato</div><div class="sm-val">${e0(T)}</div></div>
+    <div class="sm" style="background:${gGuad>=0?'var(--teal-l)':'var(--red-l)'};border-color:${gGuad>=0?'var(--teal-b)':'var(--red-b)'}">
+      <div class="sm-lbl" style="color:${gGuad>=0?'var(--teal-d)':'var(--red-d)'}">Guadagno</div>
+      <div class="sm-val" style="color:${gGuad>=0?'var(--teal)':'var(--red)'}">${ep(gGuad)}</div>
+    </div>
+    <div class="sm" style="background:${pctGuad>=0?'var(--teal-l)':'var(--red-l)'};border-color:${pctGuad>=0?'var(--teal-b)':'var(--red-b)'}">
+      <div class="sm-lbl" style="color:${pctGuad>=0?'var(--teal-d)':'var(--red-d)'}">Rendimento % sul giocato</div>
+      <div class="sm-val" style="color:${pctGuad>=0?'var(--teal)':'var(--red)'}">${pctGuad>=0?'+':''}${pctGuad.toFixed(2)}%</div>
+    </div>
+  </div>`;
+  document.getElementById('div-ott').innerHTML=html;
+  document.getElementById('card-ott').style.display='block';
+}
+
+// ── CONVALIDA GIOCATA ──
+function apriConvalida(){
+  const n=_nGlobale,lb=_lbGlobale,g=_gGlobale;
+  if(!n||!_ptGlobale.length){alert('Calcola prima le quote.');return;}
+  esitoSelezionato=-1;
+  document.getElementById('btn-salva-giocata').disabled=true;
+  document.getElementById('modal-msg').textContent='';
+  let html='';
+  for(let k=0;k<n;k++){
+    const zonaEl=document.getElementById('zona'+k);
+    const zonaNome=zonaEl&&zonaEl.selectedIndex>0?zonaEl.options[zonaEl.selectedIndex].text:'Nessuna zona';
+    const agente=document.getElementById('agente'+k)?.value||'';
+    html+=`<button onclick="selEsito(${k})" id="esito-btn-${k}"
+      style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border:0.5px solid var(--border2);border-radius:var(--r-md);background:var(--bg2);cursor:pointer;font-family:inherit;font-size:13px;transition:all .15s;text-align:left;width:100%">
+      <span style="font-weight:700;font-size:17px;margin-right:.75rem;color:var(--text)">${lb[k]}</span>
+      <span style="flex:1;color:var(--text2);font-size:12px">${zonaNome}${agente?' · '+agente:''}</span>
+      <span style="font-weight:600;color:var(--teal);font-size:14px">${ep(g[k]||0)}</span>
+    </button>`;
+  }
+  document.getElementById('modal-esiti').innerHTML=html;
+  document.getElementById('modal-preview').innerHTML='';
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function selEsito(k){
+  esitoSelezionato=k;
+  const n=_nGlobale,lb=_lbGlobale,pt=_ptGlobale,T=_TGlobale,g=_gGlobale;
+  for(let i=0;i<n;i++){
+    const b=document.getElementById('esito-btn-'+i);
+    if(b){b.style.background=i===k?'var(--teal-l)':'var(--bg2)';b.style.borderColor=i===k?'var(--teal-b)':'var(--border2)';}
+  }
+  const nomeEvento=document.getElementById('ev-nome')?.value||'Evento';
+  let prev=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.4rem">Movimenti che verranno salvati (Virtual):</div>`;
+  for(let i=0;i<n;i++){
+    const zonaEl=document.getElementById('zona'+i);
+    const zonaId=zonaEl?.value||'';
+    const zonaNome=zonaEl&&zonaEl.selectedIndex>0?zonaEl.options[zonaEl.selectedIndex].text:'Nessuna zona';
+    const agente=document.getElementById('agente'+i)?.value||'';
+    let importo;
+    if(i===k){
+      importo=parseFloat((pt[i]*_qGlobale[i]-pt[i]).toFixed(2));
+    } else {
+      importo=parseFloat((PCT*pt[i]-pt[i]).toFixed(2));
+    }
+    const color=importo>=0?'var(--teal)':'var(--red)';
+    const win=i===k;
+    prev+=`<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:var(--r-sm);background:${win?'var(--teal-l)':'var(--bg2)'};border:0.5px solid ${win?'var(--teal-b)':'var(--border)'};margin-bottom:.3rem;font-size:12px">
+      <span style="font-weight:700;min-width:20px;color:${win?'var(--teal-d)':'var(--text)'}">${lb[i]}</span>
+      <span style="flex:1;color:var(--text2)">${zonaNome}${agente?' · '+agente:''}</span>
+      ${win?`<span style="font-size:10px;background:var(--teal);color:#fff;padding:1px 6px;border-radius:10px;margin-right:4px">VINCENTE</span>`:''}
+      ${!zonaId?`<span style="color:var(--red);font-size:10px;margin-right:4px">⚠ nessuna zona</span>`:''}
+      <span style="font-weight:600;color:${color};min-width:65px;text-align:right">${ep(importo)}</span>
+    </div>`;
+  }
+  document.getElementById('modal-preview').innerHTML=prev;
+  document.getElementById('btn-salva-giocata').disabled=false;
+}
+
+function chiudiConvalida(){
+  document.getElementById('modal-overlay').style.display='none';
+  esitoSelezionato=-1;
+}
+
+async function salvaGiocata(){
+  if(esitoSelezionato<0){alert('Seleziona un esito vincente.');return;}
+  const n=_nGlobale,lb=_lbGlobale,pt=_ptGlobale;
+  const nomeEvento=document.getElementById('ev-nome')?.value||'Evento';
+  const oggi=new Date().toISOString().split('T')[0];
+  document.getElementById('modal-msg').textContent='Salvataggio...';
+  document.getElementById('btn-salva-giocata').disabled=true;
+  try{
+    for(let i=0;i<n;i++){
+      const zonaEl=document.getElementById('zona'+i);
+      const zonaId=zonaEl?.value||'';
+      if(!zonaId) continue;
+      const sr=SR.find(s=>s.id==zonaId);
+      if(!sr) continue;
+      const agente=document.getElementById('agente'+i)?.value||'';
+      let importo,desc;
+      if(i===esitoSelezionato){
+        importo=parseFloat((pt[i]*_qGlobale[i]-pt[i]).toFixed(2));
+        desc=`[V] ${nomeEvento} - Esito ${lb[i]} VINCENTE${agente?' ('+agente+')':''}`;
+      } else {
+        importo=parseFloat((PCT*pt[i]-pt[i]).toFixed(2));
+        desc=`[V] ${nomeEvento} - Esito ${lb[i]} perdente${agente?' ('+agente+')':''}`;
+      }
+      await sbFetch('/rest/v1/movimenti',{method:'POST',body:JSON.stringify({sottorete_id:zonaId,sottorete_nome:sr.nome,tipo:'V',data:oggi,descrizione:desc,importo})});
+      const nuovoSaldo=parseFloat(((Number(sr.saldo_v)||0)+importo).toFixed(2));
+      await sbFetch(`/rest/v1/sottoreti?id=eq.${zonaId}`,{method:'PATCH',body:JSON.stringify({saldo_v:nuovoSaldo})});
+    }
+    document.getElementById('modal-msg').textContent='Movimenti salvati!';
+    setTimeout(()=>{chiudiConvalida();caricaDati();},1100);
+  }catch(e){
+    document.getElementById('modal-msg').textContent='Errore: '+e.message;
+    document.getElementById('btn-salva-giocata').disabled=false;
+    console.error(e);
+  }
+}
+
+function stampaPDF(){
+  const now=new Date();
+  const dataStr=now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const oraStr=now.toLocaleTimeString('it-IT');
+
+  let tvN=0,tvC=0,tcN=0,tcC=0;
+  SR.forEach(sr=>{tvN+=saldoT(sr,'V');tvC+=commT(sr,'V');tcN+=saldoT(sr,'C');tcC+=commT(sr,'C');});
+  const tvBil=tvN+tvC,tcBil=tcN+tcC,totBil=tvBil+tcBil;
+
+  let righe='';
+  SR.forEach(sr=>{
+    const sv=saldoT(sr,'V'),cv=commT(sr,'V'),kv=sv+cv;
+    const sc=saldoT(sr,'C'),cc=commT(sr,'C'),kc=sc+cc;
+    const ktot=kv+kc;
+    const ags=(sr.agenti||[]).join(', ')||'—';
+    righe+=`<tr>
+      <td>${sr.nome}</td>
+      <td>${ags}</td>
+      <td style="color:${sv>=0?'#1D9E75':'#E24B4A'}">${ep(sv)}</td>
+      <td style="color:#378ADD">${cv>0?e0(cv):'—'}</td>
+      <td style="font-weight:600;color:${kv>=0?'#1D9E75':'#E24B4A'}">${ep(kv)}</td>
+      <td style="color:${sc>=0?'#1D9E75':'#E24B4A'}">${ep(sc)}</td>
+      <td style="color:#378ADD">${cc>0?e0(cc):'—'}</td>
+      <td style="font-weight:600;color:${kc>=0?'#1D9E75':'#E24B4A'}">${ep(kc)}</td>
+      <td style="font-weight:700;color:${ktot>=0?'#1D9E75':'#E24B4A'}">${ep(ktot)}</td>
+    </tr>`;
+  });
+
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+  <title>Ricevuta contabilità ${dataStr}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a18;padding:2rem;max-width:900px;margin:0 auto}
+    h1{font-size:18px;font-weight:700;margin-bottom:.25rem}
+    .sub{font-size:12px;color:#6b6b68;margin-bottom:1.5rem}
+    .kpi-row{display:flex;gap:1rem;margin-bottom:1.5rem}
+    .kpi{flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:.75rem 1rem;border-top:3px solid #ccc}
+    .kpi.v{border-top-color:#378ADD}.kpi.c{border-top-color:#7655D2}.kpi.t{border-top-color:#1D9E75}
+    .kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6b6b68;margin-bottom:.3rem}
+    .kpi-val{font-size:18px;font-weight:700}
+    table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:1.5rem}
+    th{background:#f8f8f7;padding:6px 8px;text-align:left;border-bottom:1px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#6b6b68}
+    td{padding:6px 8px;border-bottom:1px solid #eee}
+    tfoot td{font-weight:700;background:#f8f8f7;border-top:1px solid #ccc}
+    .footer{margin-top:2rem;font-size:10px;color:#a0a09d;border-top:1px solid #eee;padding-top:.75rem}
+    @media print{body{padding:1rem}}
+  </style></head><body>
+  <h1>Ricevuta contabilità — Gestionale Rete</h1>
+  <div class="sub">Generata il ${dataStr} alle ${oraStr} &nbsp;·&nbsp; ${SR.length} sottoreti</div>
+
+  <div class="kpi-row">
+    <div class="kpi v">
+      <div class="kpi-lbl">🎮 Bilancio Virtual</div>
+      <div class="kpi-val" style="color:${tvBil>=0?'#1D9E75':'#E24B4A'}">${ep(tvBil)}</div>
+      <div style="font-size:10px;color:#6b6b68;margin-top:.25rem">Netti ${e0(tvN)} + Comm. ${e0(tvC)}</div>
+    </div>
+    <div class="kpi c">
+      <div class="kpi-lbl">🎰 Bilancio Casinò</div>
+      <div class="kpi-val" style="color:${tcBil>=0?'#1D9E75':'#E24B4A'}">${ep(tcBil)}</div>
+      <div style="font-size:10px;color:#6b6b68;margin-top:.25rem">Netti ${e0(tcN)} + Comm. ${e0(tcC)}</div>
+    </div>
+    <div class="kpi t">
+      <div class="kpi-lbl">⚖️ Bilancio totale rete</div>
+      <div class="kpi-val" style="color:${totBil>=0?'#1D9E75':'#E24B4A'};font-size:22px">${ep(totBil)}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>Sottorete</th><th>Agenti</th>
+      <th>Saldo V.</th><th>Comm. V.</th><th>Contr. V.</th>
+      <th>Saldo C.</th><th>Comm. C.</th><th>Contr. C.</th>
+      <th>Totale</th>
+    </tr></thead>
+    <tbody>${righe}</tbody>
+    <tfoot><tr>
+      <td colspan="2">Totale rete</td>
+      <td style="color:${tvN>=0?'#1D9E75':'#E24B4A'}">${ep(tvN)}</td>
+      <td style="color:#378ADD">${e0(tvC)}</td>
+      <td style="color:${tvBil>=0?'#1D9E75':'#E24B4A'}">${ep(tvBil)}</td>
+      <td style="color:${tcN>=0?'#1D9E75':'#E24B4A'}">${ep(tcN)}</td>
+      <td style="color:#378ADD">${e0(tcC)}</td>
+      <td style="color:${tcBil>=0?'#1D9E75':'#E24B4A'}">${ep(tcBil)}</td>
+      <td style="color:${totBil>=0?'#1D9E75':'#E24B4A'};font-size:13px">${ep(totBil)}</td>
+    </tr></tfoot>
+  </table>
+
+  <div class="footer">Documento generato automaticamente dal Gestionale Rete · ${dataStr} ${oraStr}</div>
+  <script>window.onload=()=>window.print()<\/script>
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── INIT ──
+caricaConfig();
+if(hasSB()){
+  document.getElementById('cfg-lbl').textContent='Supabase ✓';
+  caricaDati();
+} else {
+  syncUI('err','Configura Supabase →');
+  renderAll();
+}
+setInterval(caricaDati,20000);
+</script>
+</body>
+</html>
