@@ -310,6 +310,23 @@ tfoot td{font-weight:600;background:var(--bg2);border-top:0.5px solid var(--bord
 
 <!-- ===== STORICO ===== -->
 <div class="panel" id="panel-storico">
+
+  <!-- BARRA MESE -->
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-title"><i class="ti ti-calendar"></i> Periodo</span>
+      <div class="flex" style="gap:.4rem">
+        <button class="btn btn-sm btn-g" id="btn-prev-mese" onclick="navMese(-1)"><i class="ti ti-chevron-left"></i></button>
+        <span id="lbl-mese" style="font-size:13px;font-weight:600;min-width:120px;text-align:center">—</span>
+        <button class="btn btn-sm btn-g" id="btn-next-mese" onclick="navMese(1)"><i class="ti ti-chevron-right"></i></button>
+        <div style="width:1px;background:var(--border);margin:0 .25rem"></div>
+        <span id="lbl-mese-stato" style="font-size:11px"></span>
+        <button class="btn btn-sm" id="btn-chiudi-mese" onclick="chiudiMese()" style="display:none"><i class="ti ti-lock"></i> Chiudi mese</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM NUOVO MOVIMENTO -->
   <div class="section" id="form-mov" style="display:none">
     <div class="sec-head">
       <span class="sec-title"><i class="ti ti-plus"></i> Nuovo movimento</span>
@@ -336,19 +353,45 @@ tfoot td{font-weight:600;background:var(--bg2);border-top:0.5px solid var(--bord
       </div>
     </div>
   </div>
+
+  <!-- LISTA MOVIMENTI -->
   <div class="section">
     <div class="sec-head">
-      <span class="sec-title"><i class="ti ti-history"></i> Storico movimenti</span>
+      <span class="sec-title"><i class="ti ti-history"></i> Movimenti</span>
       <div class="flex" style="gap:.4rem">
         <select id="storico-filtro-tipo" class="finput" style="width:auto;font-size:12px;padding:4px 8px" onchange="renderMov()">
           <option value="">Tutti i tipi</option>
           <option value="V">Virtual</option>
           <option value="C">Casinò</option>
         </select>
-        <button class="btn btn-p btn-sm" onclick="nuovoMov()"><i class="ti ti-plus"></i> Nuovo</button>
+        <button class="btn btn-p btn-sm" id="btn-nuovo-mov" onclick="nuovoMov()"><i class="ti ti-plus"></i> Nuovo</button>
       </div>
     </div>
     <div id="wrap-mov"><div class="empty"><i class="ti ti-loader"></i>Caricamento...</div></div>
+  </div>
+
+  <!-- KPI MESE CORRENTE -->
+  <div class="section" id="sec-kpi-mese">
+    <div class="sec-head"><span class="sec-title"><i class="ti ti-chart-bar"></i> Riepilogo periodo</span></div>
+    <div class="sec-body" id="wrap-kpi-mese"></div>
+  </div>
+
+</div>
+
+<!-- MODAL CHIUSURA MESE -->
+<div id="modal-chiudi" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1001;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r-lg);padding:1.5rem;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+      <i class="ti ti-lock" style="font-size:18px;color:var(--amber-d)"></i>
+      <span style="font-size:15px;font-weight:600">Chiusura mese</span>
+    </div>
+    <div class="notice n-warn" style="margin-bottom:1rem"><i class="ti ti-alert-triangle"></i><span>Il mese verrà <strong>bloccato</strong>: non si potranno aggiungere o eliminare movimenti. I saldi verranno riportati come saldo iniziale del mese successivo.</span></div>
+    <div id="chiudi-preview" style="font-size:13px;margin-bottom:1rem"></div>
+    <div class="flex">
+      <button class="btn btn-p" onclick="confermaCiudiMese()"><i class="ti ti-lock"></i> Conferma chiusura</button>
+      <button class="btn btn-g" onclick="document.getElementById('modal-chiudi').style.display='none'">Annulla</button>
+      <span id="chiudi-msg" style="font-size:12px;color:var(--text2)"></span>
+    </div>
   </div>
 </div>
 
@@ -438,7 +481,9 @@ async function caricaDati(){
       sbFetch('/rest/v1/sottoreti?select=*&order=created_at.asc'),
       sbFetch('/rest/v1/movimenti?select=*&order=data.desc,created_at.desc')
     ]);
-    SR=sr;MOV=mov;syncUI('ok','Sincronizzato');renderAll();
+    SR=sr;MOV=mov;syncUI('ok','Sincronizzato');
+    await caricaPeriodi();
+    renderAll();
   }catch(e){syncUI('err','Errore connessione');console.error(e);}
 }
 function renderAll(){renderRete();renderSR();renderMov();}
@@ -515,6 +560,9 @@ function renderRete(){
   let tvN=0,tvC=0,tcN=0,tcC=0;
   SR.forEach(sr=>{tvN+=saldoT(sr,'V');tvC+=commT(sr,'V');tcN+=saldoT(sr,'C');tcC+=commT(sr,'C');});
   const tvBil=tvN+tvC,tcBil=tcN+tcC,totBil=tvBil+tcBil;
+  const TASSA=0.017;
+  const tassa=parseFloat((totBil*TASSA).toFixed(2));
+  const netto=parseFloat((totBil-tassa).toFixed(2));
   document.getElementById('wrap-riepilogo').innerHTML=`
     <div class="g3" style="margin-bottom:.75rem">
       <div>
@@ -535,7 +583,15 @@ function renderRete(){
       </div>
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.5rem;display:flex;align-items:center;gap:5px"><i class="ti ti-sum"></i> Totale rete</div>
-        <div class="sm" style="margin-bottom:.4rem"><div class="sm-lbl">Virtual + Casinò</div><div class="sm-val" style="font-size:20px;color:${C(totBil)}">${ep(totBil)}</div></div>
+        <div class="sm" style="margin-bottom:.35rem"><div class="sm-lbl">Lordo (Virtual + Casinò)</div><div class="sm-val" style="font-size:18px;color:${C(totBil)}">${ep(totBil)}</div></div>
+        <div class="sm" style="margin-bottom:.35rem;background:var(--amber-l);border-color:var(--amber-b)">
+          <div class="sm-lbl" style="color:var(--amber-d)">Tassa 1,7%</div>
+          <div class="sm-val" style="font-size:15px;color:var(--amber-d)">−${e0(tassa)}</div>
+        </div>
+        <div class="sm" style="background:${netto>=0?'var(--teal-l)':'var(--red-l)'};border-color:${netto>=0?'var(--teal-b)':'var(--red-b)'}">
+          <div class="sm-lbl" style="color:${netto>=0?'var(--teal-d)':'var(--red-d)'}">Netto dopo tassa</div>
+          <div class="sm-val" style="font-size:20px;color:${netto>=0?'var(--teal)':'var(--red)'}">${ep(netto)}</div>
+        </div>
       </div>
     </div>`;
 }
@@ -614,14 +670,168 @@ async function delSR(id){
   catch(e){syncUI('err','Errore');}
 }
 
+// ── PERIODI MENSILI ──
+let PERIODI=[], periodoCorrente=null, meseVista=null; // meseVista = {anno,mese} o null = corrente
+
+function meseLbl(anno,mese){
+  return new Date(anno,mese-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+}
+function meseKey(anno,mese){return `${anno}-${String(mese).padStart(2,'0')}`;}
+function meseOggi(){const d=new Date();return {anno:d.getFullYear(),mese:d.getMonth()+1};}
+
+async function caricaPeriodi(){
+  try{
+    const p=await sbFetch('/rest/v1/periodi?select=*&order=anno.desc,mese.desc');
+    PERIODI=p;
+    // se non esiste periodo corrente, crealo
+    const oggi=meseOggi();
+    const esiste=PERIODI.find(p=>p.anno===oggi.anno&&p.mese===oggi.mese);
+    if(!esiste){
+      const np=await sbFetch('/rest/v1/periodi',{method:'POST',body:JSON.stringify({anno:oggi.anno,mese:oggi.mese,chiuso:false})});
+      if(np&&np[0]) PERIODI.unshift(np[0]);
+    }
+    if(!meseVista) meseVista=oggi;
+    aggiornaBarraMese();
+  }catch(e){console.error('periodi:',e);}
+}
+
+function aggiornaBarraMese(){
+  if(!meseVista) meseVista=meseOggi();
+  const {anno,mese}=meseVista;
+  const oggi=meseOggi();
+  document.getElementById('lbl-mese').textContent=meseLbl(anno,mese);
+  const periodo=PERIODI.find(p=>p.anno===anno&&p.mese===mese);
+  const isCorrente=anno===oggi.anno&&mese===oggi.mese;
+  const chiuso=periodo?.chiuso||false;
+  // stato badge
+  const statoEl=document.getElementById('lbl-mese-stato');
+  if(chiuso){
+    statoEl.innerHTML=`<span class="badge" style="background:var(--red-l);color:var(--red-d)"><i class="ti ti-lock" style="font-size:10px"></i> Chiuso</span>`;
+  } else if(isCorrente){
+    statoEl.innerHTML=`<span class="badge bg"><i class="ti ti-circle" style="font-size:10px"></i> Aperto</span>`;
+  } else {
+    statoEl.innerHTML=`<span class="badge" style="background:var(--bg2);color:var(--text2)">Storico</span>`;
+  }
+  // bottone chiudi mese
+  const btnChiudi=document.getElementById('btn-chiudi-mese');
+  btnChiudi.style.display=(!chiuso&&isCorrente)?'inline-flex':'none';
+  // bottone nuovo movimento e delete
+  const btnNuovo=document.getElementById('btn-nuovo-mov');
+  if(btnNuovo) btnNuovo.style.display=chiuso?'none':'inline-flex';
+  // navigazione: no avanti oltre mese corrente
+  const haNext=!(anno===oggi.anno&&mese===oggi.mese);
+  document.getElementById('btn-next-mese').disabled=!haNext;
+  document.getElementById('btn-next-mese').style.opacity=haNext?'1':'0.3';
+}
+
+function navMese(delta){
+  if(!meseVista) meseVista=meseOggi();
+  let {anno,mese}=meseVista;
+  mese+=delta;
+  if(mese>12){mese=1;anno++;}
+  if(mese<1){mese=12;anno--;}
+  const oggi=meseOggi();
+  if(anno>oggi.anno||(anno===oggi.anno&&mese>oggi.mese)) return;
+  meseVista={anno,mese};
+  aggiornaBarraMese();
+  renderMov();
+  renderKpiMese();
+}
+
+function periodoChiuso(){
+  if(!meseVista) return false;
+  const p=PERIODI.find(x=>x.anno===meseVista.anno&&x.mese===meseVista.mese);
+  return p?.chiuso||false;
+}
+
+// ── CHIUSURA MESE ──
+function chiudiMese(){
+  if(!meseVista) return;
+  const {anno,mese}=meseVista;
+  // calcola saldi correnti per preview
+  const movMese=MOV.filter(m=>m.data&&m.data.startsWith(meseKey(anno,mese)));
+  let previewHtml=`<div style="font-size:12px;color:var(--text2);margin-bottom:.5rem">Saldi che verranno riportati al mese successivo:</div>`;
+  SR.forEach(sr=>{
+    const sv=Number(sr.saldo_v)||0, sc=Number(sr.saldo_c)||0;
+    previewHtml+=`<div style="display:flex;justify-content:space-between;padding:.35rem .5rem;border-radius:var(--r-sm);background:var(--bg2);margin-bottom:.25rem;font-size:13px">
+      <span style="font-weight:500">${sr.nome}</span>
+      <span>Virtual: <strong style="color:${sv>=0?'var(--teal)':'var(--red)'}">${e0(sv)}</strong></span>
+      <span>Casinò: <strong style="color:${sc>=0?'var(--teal)':'var(--red)'}">${e0(sc)}</strong></span>
+    </div>`;
+  });
+  document.getElementById('chiudi-preview').innerHTML=previewHtml;
+  document.getElementById('chiudi-msg').textContent='';
+  document.getElementById('modal-chiudi').style.display='flex';
+}
+
+async function confermaCiudiMese(){
+  if(!meseVista) return;
+  const {anno,mese}=meseVista;
+  document.getElementById('chiudi-msg').textContent='Chiusura in corso...';
+  try{
+    // 1. Segna periodo come chiuso
+    const periodo=PERIODI.find(p=>p.anno===anno&&p.mese===mese);
+    if(periodo){
+      await sbFetch(`/rest/v1/periodi?id=eq.${periodo.id}`,{method:'PATCH',body:JSON.stringify({chiuso:true,chiuso_at:new Date().toISOString()})});
+    }
+    // 2. Calcola mese successivo
+    let mSucc=mese+1,aSucc=anno;
+    if(mSucc>12){mSucc=1;aSucc++;}
+    // 3. Crea periodo successivo se non esiste
+    const esiste=PERIODI.find(p=>p.anno===aSucc&&p.mese===mSucc);
+    if(!esiste){
+      await sbFetch('/rest/v1/periodi',{method:'POST',body:JSON.stringify({anno:aSucc,mese:mSucc,chiuso:false})});
+    }
+    // 4. Per ogni sottorete: salva riporto come movimento nel nuovo mese
+    const dataRiporto=`${aSucc}-${String(mSucc).padStart(2,'0')}-01`;
+    for(const sr of SR){
+      const sv=Number(sr.saldo_v)||0, sc=Number(sr.saldo_c)||0;
+      // riporto Virtual
+      await sbFetch('/rest/v1/movimenti',{method:'POST',body:JSON.stringify({
+        sottorete_id:sr.id,sottorete_nome:sr.nome,tipo:'V',
+        data:dataRiporto,
+        descrizione:`Riporto da ${meseLbl(anno,mese)}`,
+        importo:sv,
+        riporto:true
+      })});
+      // riporto Casinò
+      await sbFetch('/rest/v1/movimenti',{method:'POST',body:JSON.stringify({
+        sottorete_id:sr.id,sottorete_nome:sr.nome,tipo:'C',
+        data:dataRiporto,
+        descrizione:`Riporto da ${meseLbl(anno,mese)}`,
+        importo:sc,
+        riporto:true
+      })});
+      // azzera saldi correnti (il nuovo mese parte da 0 + riporto come primo movimento)
+      await sbFetch(`/rest/v1/sottoreti?id=eq.${sr.id}`,{method:'PATCH',body:JSON.stringify({saldo_v:sv,saldo_c:sc})});
+    }
+    document.getElementById('modal-chiudi').style.display='none';
+    // naviga al mese successivo
+    meseVista={anno:aSucc,mese:mSucc};
+    await caricaDati();
+    await caricaPeriodi();
+  }catch(e){
+    document.getElementById('chiudi-msg').textContent='Errore: '+e.message;
+    console.error(e);
+  }
+}
+
 // ── STORICO ──
 function nuovoMov(){
   if(!SR.length){alert('Aggiungi prima una sottorete.');return;}
+  if(periodoChiuso()){alert('Questo mese è chiuso. Non puoi aggiungere movimenti.');return;}
   document.getElementById('mov-sr').innerHTML=SR.map(sr=>`<option value="${sr.id}">${sr.nome}</option>`).join('');
-  document.getElementById('mov-data').value=new Date().toISOString().split('T')[0];
+  // data default: primo giorno del mese visualizzato
+  const {anno,mese}=meseVista||meseOggi();
+  const oggi=new Date();
+  const isCorrente=anno===oggi.getFullYear()&&mese===oggi.getMonth()+1;
+  document.getElementById('mov-data').value=isCorrente
+    ?oggi.toISOString().split('T')[0]
+    :`${anno}-${String(mese).padStart(2,'0')}-01`;
   document.getElementById('mov-imp').value='';document.getElementById('mov-desc').value='';
   document.getElementById('form-mov').style.display='block';
 }
+
 async function salvaMov(){
   const srId=document.getElementById('mov-sr').value;
   const tipo=document.getElementById('mov-tipo').value;
@@ -634,15 +844,16 @@ async function salvaMov(){
   try{
     const sr=SR.find(s=>s.id==srId);
     await sbFetch('/rest/v1/movimenti',{method:'POST',body:JSON.stringify({sottorete_id:srId,sottorete_nome:sr.nome,tipo,data,descrizione:desc,importo:imp})});
-    // aggiorna saldo corretto
     const campo=tipo==='V'?'saldo_v':'saldo_c';
-    const nuovoSaldo=Number(sr[campo]||0)+imp;
+    const nuovoSaldo=parseFloat((Number(sr[campo]||0)+imp).toFixed(2));
     await sbFetch(`/rest/v1/sottoreti?id=eq.${srId}`,{method:'PATCH',body:JSON.stringify({[campo]:nuovoSaldo})});
     document.getElementById('form-mov').style.display='none';
     await caricaDati();
   }catch(e){syncUI('err','Errore');console.error(e);}
 }
+
 async function delMov(id,srId,tipo,imp){
+  if(periodoChiuso()){alert('Mese chiuso: impossibile eliminare movimenti.');return;}
   if(!confirm('Rimuovere il movimento? Il saldo verrà stornato.'))return;
   syncUI('syn','...');
   try{
@@ -650,39 +861,91 @@ async function delMov(id,srId,tipo,imp){
     await sbFetch(`/rest/v1/movimenti?id=eq.${id}`,{method:'DELETE'});
     if(sr){
       const campo=tipo==='V'?'saldo_v':'saldo_c';
-      await sbFetch(`/rest/v1/sottoreti?id=eq.${srId}`,{method:'PATCH',body:JSON.stringify({[campo]:Number(sr[campo]||0)-imp})});
+      await sbFetch(`/rest/v1/sottoreti?id=eq.${srId}`,{method:'PATCH',body:JSON.stringify({[campo]:parseFloat((Number(sr[campo]||0)-imp).toFixed(2))})});
     }
     await caricaDati();
   }catch(e){syncUI('err','Errore');}
 }
+
 function renderMov(){
+  const {anno,mese}=meseVista||meseOggi();
   const filtroTipo=document.getElementById('storico-filtro-tipo')?.value||'';
+  const chiuso=periodoChiuso();
   const w=document.getElementById('wrap-mov');
-  let list=filtroTipo?MOV.filter(m=>m.tipo===filtroTipo):MOV;
-  if(!list.length){w.innerHTML=`<div class="empty"><i class="ti ti-history"></i>Nessun movimento${filtroTipo?' per questo tipo':''} registrato.</div>`;return;}
+  const prefix=meseKey(anno,mese);
+  let list=MOV.filter(m=>m.data&&m.data.startsWith(prefix));
+  if(filtroTipo) list=list.filter(m=>m.tipo===filtroTipo);
+  if(!list.length){
+    w.innerHTML=`<div class="empty"><i class="ti ti-history"></i>Nessun movimento per ${meseLbl(anno,mese)}${filtroTipo?' (filtro: '+filtroTipo+')':''}.</div>`;
+    renderKpiMese();return;
+  }
   let h=`<table><thead><tr>
     <th style="width:9%">Data</th>
-    <th style="width:16%">Sottorete</th>
-    <th style="width:9%">Tipo</th>
-    <th style="width:30%">Descrizione</th>
+    <th style="width:15%">Sottorete</th>
+    <th style="width:8%">Tipo</th>
+    <th style="width:29%">Descrizione</th>
     <th style="width:11%">Importo</th>
-    <th style="width:9%">Categoria</th>
-    <th style="width:6%"></th>
+    <th style="width:9%">Cat.</th>
+    <th style="width:8%">Flag</th>
+    <th style="width:5%"></th>
   </tr></thead><tbody>`;
   list.forEach(m=>{
     const imp=Number(m.importo),t=m.tipo||'V';
-    h+=`<tr>
-      <td style="color:var(--text2)">${m.data}</td>
+    const isRiporto=m.riporto||m.descrizione?.startsWith('Riporto');
+    h+=`<tr style="${isRiporto?'opacity:.7;font-style:italic':''}">
+      <td style="color:var(--text2);font-size:12px">${m.data}</td>
       <td style="font-weight:500">${m.sottorete_nome}</td>
-      <td>${t==='V'?`<span class="badge bv"><i class="ti ti-device-gamepad-2" style="font-size:10px"></i> Virtual</span>`:`<span class="badge bc"><i class="ti ti-building-casino" style="font-size:10px"></i> Casinò</span>`}</td>
-      <td style="white-space:normal;line-height:1.4">${m.descrizione}</td>
+      <td>${t==='V'?`<span class="badge bv" style="font-size:10px"><i class="ti ti-device-gamepad-2" style="font-size:9px"></i> V</span>`:`<span class="badge bc" style="font-size:10px"><i class="ti ti-building-casino" style="font-size:9px"></i> C</span>`}</td>
+      <td style="white-space:normal;line-height:1.4;font-size:12px">${m.descrizione||''}</td>
       <td style="font-weight:600;color:${imp>=0?'var(--teal)':'var(--red)'}">${ep(imp)}</td>
-      <td>${imp>=0?`<span class="badge bg"><i class="ti ti-arrow-down-left" style="font-size:10px"></i> Entrata</span>`:`<span class="badge br"><i class="ti ti-arrow-up-right" style="font-size:10px"></i> Uscita</span>`}</td>
-      <td><button class="btn btn-sm btn-ico btn-del" onclick="delMov('${m.id}','${m.sottorete_id}','${t}',${imp})" title="Elimina"><i class="ti ti-trash"></i></button></td>
+      <td>${imp>=0?`<span class="badge bg" style="font-size:10px">Entr.</span>`:`<span class="badge br" style="font-size:10px">Usc.</span>`}</td>
+      <td>${isRiporto?`<span class="badge" style="background:var(--blue-l);color:var(--blue-d);font-size:10px">Riporto</span>`:''}</td>
+      <td>${(!chiuso&&!isRiporto)?`<button class="btn btn-sm btn-ico btn-del" onclick="delMov('${m.id}','${m.sottorete_id}','${t}',${imp})" title="Elimina"><i class="ti ti-trash"></i></button>`:''}</td>
     </tr>`;
   });
   h+=`</tbody></table>`;
   w.innerHTML=h;
+  renderKpiMese();
+}
+
+function renderKpiMese(){
+  const {anno,mese}=meseVista||meseOggi();
+  const prefix=meseKey(anno,mese);
+  const movMese=MOV.filter(m=>m.data&&m.data.startsWith(prefix)&&!m.riporto&&!m.descrizione?.startsWith('Riporto'));
+  let tvE=0,tvU=0,tcE=0,tcU=0;
+  movMese.forEach(m=>{
+    const imp=Number(m.importo);
+    if(m.tipo==='V'){imp>=0?tvE+=imp:tvU+=imp;}
+    else{imp>=0?tcE+=imp:tcU+=imp;}
+  });
+  const tvN=tvE+tvU, tcN=tcE+tcU, tot=tvN+tcN;
+  document.getElementById('wrap-kpi-mese').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--blue);margin-bottom:.4rem;display:flex;align-items:center;gap:4px"><i class="ti ti-device-gamepad-2"></i> Virtual ${meseLbl(anno,mese)}</div>
+        <div class="g2" style="gap:.35rem">
+          <div class="sm"><div class="sm-lbl">Entrate</div><div class="sm-val" style="font-size:14px;color:var(--teal)">${e0(tvE)}</div></div>
+          <div class="sm"><div class="sm-lbl">Uscite</div><div class="sm-val" style="font-size:14px;color:var(--red)">${e0(tvU)}</div></div>
+        </div>
+        <div class="sm" style="margin-top:.35rem"><div class="sm-lbl">Netto Virtual</div><div class="sm-val" style="color:${tvN>=0?'var(--teal)':'var(--red)'}">${ep(tvN)}</div></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--purple);margin-bottom:.4rem;display:flex;align-items:center;gap:4px"><i class="ti ti-building-casino"></i> Casinò ${meseLbl(anno,mese)}</div>
+        <div class="g2" style="gap:.35rem">
+          <div class="sm"><div class="sm-lbl">Entrate</div><div class="sm-val" style="font-size:14px;color:var(--teal)">${e0(tcE)}</div></div>
+          <div class="sm"><div class="sm-lbl">Uscite</div><div class="sm-val" style="font-size:14px;color:var(--red)">${e0(tcU)}</div></div>
+        </div>
+        <div class="sm" style="margin-top:.35rem"><div class="sm-lbl">Netto Casinò</div><div class="sm-val" style="color:${tcN>=0?'var(--teal)':'var(--red)'}">${ep(tcN)}</div></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:.4rem;display:flex;align-items:center;gap:4px"><i class="ti ti-sum"></i> Totale periodo</div>
+        <div class="sm"><div class="sm-lbl">Movimenti</div><div class="sm-val" style="font-size:14px">${movMese.length}</div></div>
+        <div class="sm" style="margin-top:.35rem;background:${tot>=0?'var(--teal-l)':'var(--red-l)'};border-color:${tot>=0?'var(--teal-b)':'var(--red-b)'}">
+          <div class="sm-lbl" style="color:${tot>=0?'var(--teal-d)':'var(--red-d)'}">Netto totale</div>
+          <div class="sm-val" style="color:${tot>=0?'var(--teal)':'var(--red)'}">${ep(tot)}</div>
+        </div>
+      </div>
+    </div>`;
 }
 
 // ── MERCATO ──
@@ -880,6 +1143,9 @@ function stampaPDF(){
   let tvN=0,tvC=0,tcN=0,tcC=0;
   SR.forEach(sr=>{tvN+=saldoT(sr,'V');tvC+=commT(sr,'V');tcN+=saldoT(sr,'C');tcC+=commT(sr,'C');});
   const tvBil=tvN+tvC,tcBil=tcN+tcC,totBil=tvBil+tcBil;
+  const TASSA=0.017;
+  const tassaPDF=parseFloat((totBil*TASSA).toFixed(2));
+  const nettoPDF=parseFloat((totBil-tassaPDF).toFixed(2));
 
   let righe='';
   SR.forEach(sr=>{
@@ -933,8 +1199,19 @@ function stampaPDF(){
       <div style="font-size:10px;color:#6b6b68;margin-top:.25rem">Netti ${e0(tcN)} + Comm. ${e0(tcC)}</div>
     </div>
     <div class="kpi t">
-      <div class="kpi-lbl">⚖️ Bilancio totale rete</div>
-      <div class="kpi-val" style="color:${totBil>=0?'#1D9E75':'#E24B4A'};font-size:22px">${ep(totBil)}</div>
+      <div class="kpi-lbl">⚖️ Bilancio lordo rete</div>
+      <div class="kpi-val" style="color:${totBil>=0?'#1D9E75':'#E24B4A'};font-size:18px">${ep(totBil)}</div>
+    </div>
+  </div>
+  <div class="kpi-row" style="margin-bottom:1.5rem">
+    <div class="kpi" style="border-top-color:#BA7517;flex:2">
+      <div class="kpi-lbl">🏛️ Tassa 1,7% sul totale lordo</div>
+      <div class="kpi-val" style="color:#BA7517;font-size:18px">−${e0(tassaPDF)}</div>
+      <div style="font-size:10px;color:#6b6b68;margin-top:.25rem">${ep(totBil)} × 1,7% = ${e0(tassaPDF)}</div>
+    </div>
+    <div class="kpi" style="border-top-color:${nettoPDF>=0?'#1D9E75':'#E24B4A'};flex:3;background:${nettoPDF>=0?'#F0FBF7':'#FDF1F1'}">
+      <div class="kpi-lbl" style="color:${nettoPDF>=0?'#085041':'#791F1F'}">✅ Netto finale dopo tassa</div>
+      <div class="kpi-val" style="color:${nettoPDF>=0?'#1D9E75':'#E24B4A'};font-size:26px">${ep(nettoPDF)}</div>
     </div>
   </div>
 
@@ -968,6 +1245,7 @@ function stampaPDF(){
 }
 
 // ── INIT ──
+meseVista=meseOggi();
 caricaConfig();
 if(hasSB()){
   document.getElementById('cfg-lbl').textContent='Supabase ✓';
